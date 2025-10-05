@@ -1,0 +1,7 @@
+Flask
+openai-whisper
+TTS
+transformers==4.38.2
+huggingface-hub==0.20.3
+numpy==1.22.0
+librosa
