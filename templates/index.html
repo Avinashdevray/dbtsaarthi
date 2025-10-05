@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Multilingual Voice Help</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-slate-100 flex items-center justify-center p-4">
+    <div class="w-full max-w-xl">
+        <div class="bg-white shadow-xl rounded-[32px] overflow-hidden border border-emerald-100">
+            <div class="bg-emerald-500 text-white py-6 px-8 flex items-center gap-4">
+                <div class="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center text-2xl font-semibold">M</div>
+                <div>
+                    <h1 class="text-xl font-semibold">Multilingual Voice Help</h1>
+                    <p class="text-sm text-emerald-100">Online</p>
+                </div>
+            </div>
+            <div class="p-8 space-y-6 bg-emerald-50/30">
+                <div class="space-y-3">
+                    <p class="text-sm text-slate-500">You said:</p>
+                    <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+                        <p id="userText" class="text-slate-700 text-base leading-relaxed">Waiting for your voice...</p>
+                        <p id="userLang" class="text-xs text-slate-400 mt-2">Language: --</p>
+                    </div>
+                </div>
+                <div class="space-y-3">
+                    <p class="text-sm text-slate-500">Assistant:</p>
+                    <div class="bg-emerald-100 border border-emerald-200 rounded-2xl p-4 shadow-sm">
+                        <p id="botText" class="text-slate-700 text-base leading-relaxed">Response will appear here.</p>
+                    </div>
+                </div>
+                <div class="flex flex-col items-center space-y-3 pt-4">
+                    <button id="micButton" class="w-28 h-28 rounded-full bg-emerald-500 text-white shadow-lg flex items-center justify-center transition duration-300 focus:outline-none">
+                        <svg id="micIcon" class="w-14 h-14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                            <path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3z" />
+                            <path d="M19 11a1 1 0 1 0-2 0 5 5 0 0 1-10 0 1 1 0 1 0-2 0 7 7 0 0 0 6 6.92V21H9a1 1 0 0 0 0 2h6a1 1 0 1 0 0-2h-2v-3.08A7 7 0 0 0 19 11z" />
+                        </svg>
+                    </button>
+                    <p id="statusText" class="text-sm text-slate-500">Ready</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <audio id="responseAudio" class="hidden"></audio>
+
+    <script>
+        const micButton = document.getElementById('micButton');
+        const statusText = document.getElementById('statusText');
+        const userTextEl = document.getElementById('userText');
+        const userLangEl = document.getElementById('userLang');
+        const botTextEl = document.getElementById('botText');
+        const responseAudio = document.getElementById('responseAudio');
+
+        let mediaRecorder = null;
+        let chunks = [];
+        let isRecording = false;
+        let autoStopTimer = null;
+
+        function setStatus(text) {
+            statusText.textContent = text;
+        }
+
+        function setRecordingVisual(isActive) {
+            if (isActive) {
+                micButton.classList.remove('bg-emerald-500');
+                micButton.classList.add('bg-red-500', 'animate-pulse');
+                micButton.style.transform = 'scale(1.05)';
+            } else {
+                micButton.classList.remove('bg-red-500', 'animate-pulse');
+                micButton.classList.add('bg-emerald-500');
+                micButton.style.transform = 'scale(1)';
+            }
+        }
+
+        async function startRecording() {
+            try {
+                setStatus('Listening...');
+                setRecordingVisual(true);
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+                mediaRecorder = new MediaRecorder(stream);
+                chunks = [];
+
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        chunks.push(event.data);
+                    }
+                };
+
+                mediaRecorder.onstop = async () => {
+                    isRecording = false;
+                    setRecordingVisual(false);
+                    setStatus('Processing audio...');
+                    if (autoStopTimer) {
+                        clearTimeout(autoStopTimer);
+                        autoStopTimer = null;
+                    }
+
+                    const blob = new Blob(chunks, { type: 'audio/webm' });
+                    await sendAudio(blob);
+
+                    stream.getTracks().forEach(track => track.stop());
+                    chunks = [];
+                };
+
+                mediaRecorder.start();
+                autoStopTimer = setTimeout(() => {
+                    if (isRecording) {
+                        setStatus('Auto-stopping at 10s...');
+                        stopRecording();
+                    }
+                }, 10000);
+            } catch (error) {
+                console.error(error);
+                setRecordingVisual(false);
+                setStatus('Microphone access denied.');
+            }
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                isRecording = false;
+                mediaRecorder.stop();
+            }
+        }
+
+        async function sendAudio(blob) {
+            try {
+                const formData = new FormData();
+                const file = new File([blob], 'recording.webm', { type: 'audio/webm' });
+                formData.append('audio', file);
+
+                setStatus('Uploading...');
+                const response = await fetch('/api/voice_process', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Server error');
+                }
+
+                setStatus('Generating response...');
+                const data = await response.json();
+
+                userTextEl.textContent = data.user_text?.trim() || 'Heard nothing.';
+                userLangEl.textContent = `Language: ${data.language || '--'}`;
+                botTextEl.textContent = data.bot_text || 'No response received.';
+
+                if (data.audio_url) {
+                    responseAudio.src = data.audio_url;
+                    responseAudio.currentTime = 0;
+                    responseAudio.play().catch(err => console.warn('Audio playback failed', err));
+                }
+
+                setStatus('Ready');
+            } catch (error) {
+                console.error(error);
+                botTextEl.textContent = 'Something went wrong. Please try again.';
+                setStatus('Error processing audio');
+            }
+        }
+
+        micButton.addEventListener('click', () => {
+            if (!isRecording) {
+                isRecording = true;
+                startRecording();
+            } else {
+                setStatus('Processing audio...');
+                stopRecording();
+            }
+        });
+    </script>
+</body>
+</html>
