@@ -22,3 +22,4 @@ Thumbs.db
 # Logs / temp files
 *.log
 *.tmp
+static/generated/
