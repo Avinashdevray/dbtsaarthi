@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DBTSaarthi - Ministry of Social Justice & Empowerment</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Chat Header -->
+        <div class="chat-header">
+            <div class="header-content">
+                <div class="avatar">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div class="header-text">
+                    <h2>DBTSaarthi</h2>
+                    <div class="status" id="statusText">Verification Required</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Verification Section -->
+        <div class="verification-section" id="verificationSection">
+            <div class="verification-card">
+                <div class="verification-icon">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <h3>Verify Your Identity</h3>
+                <p>Welcome to DBTSaarthi! Please enter your Aadhaar number to access guidance on avoiding scholarship delays. We'll send an OTP to verify your identity.</p>
+                
+                <div id="aadhaarInputGroup" class="input-group">
+                    <input type="text" id="aadhaarInput" placeholder="Enter 12-digit Aadhaar number" maxlength="12">
+                    <button id="sendOtpBtn" class="btn-primary">Send OTP</button>
+                </div>
+                
+                <div id="otpInputGroup" class="input-group hidden">
+                    <input type="text" id="otpInput" placeholder="Enter 4-digit OTP" maxlength="4">
+                    <button id="verifyOtpBtn" class="btn-primary">Verify OTP</button>
+                    <div class="resend-link hidden" id="resendLink">
+                        <a href="#" id="resendOtpLink">Resend OTP</a>
+                    </div>
+                </div>
+                
+                <div id="statusMessage" class="status-message"></div>
+            </div>
+        </div>
+
+        <!-- Chat Section -->
+        <div class="chat-section hidden" id="chatSection">
+            <div class="chat-messages" id="chatMessages">
+                <!-- Messages will be added here dynamically -->
+            </div>
+            
+            <div class="chat-input">
+                <div class="input-wrapper">
+                    <input type="text" id="messageInput" placeholder="Type your message...">
+                    <button id="sendMessageBtn" class="send-btn">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay hidden" id="loadingOverlay">
+        <div class="spinner"></div>
+    </div>
+
+    <script src="/static/js/script.js"></script>
+</body>
+</html>
